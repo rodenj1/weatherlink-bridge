@@ -34,7 +34,7 @@ class WundergroundSettings(BaseModel):
 
     enabled: bool = False
     station_id: str = ""
-    api_key: str = ""
+    password: str = ""  # station password (WUNDERGROUND__PASSWORD)
 
 
 class WindySettings(BaseModel):
@@ -47,7 +47,7 @@ class WindySettings(BaseModel):
 
     enabled: bool = False
     station_id: str = ""
-    api_key: str = ""
+    password: str = ""  # station password (WINDY__PASSWORD)
 
 
 class AppSettings(BaseSettings):

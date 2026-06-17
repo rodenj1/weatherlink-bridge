@@ -5,7 +5,7 @@ endpoint after the ``FieldMapper`` applies unit conversions.
 
 Key implementation notes:
   * Windy station ``id`` is a STRING (see Glossary).
-  * Auth is the station password (``WINDY__API_KEY``) sent as an
+  * Auth is the station password (``WINDY__PASSWORD``) sent as an
     ``Authorization: Bearer <password>`` request header — this keeps the secret
     out of the request URL (which httpx embeds in exceptions and logs).
   * ``id`` and ``time`` remain plain query parameters (not secret).
@@ -92,7 +92,7 @@ class WindyPublisher(BasePublisher):
         params["time"] = observation.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
         # Station password goes in the Authorization header, not the URL, so it
         # is never embedded in str(request.url) inside exceptions or access logs.
-        headers = {"Authorization": f"Bearer {self._settings.api_key}"}
+        headers = {"Authorization": f"Bearer {self._settings.password}"}
 
         log.debug("windy_publish", station_id=self._settings.station_id)
 

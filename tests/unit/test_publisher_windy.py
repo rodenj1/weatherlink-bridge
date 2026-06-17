@@ -41,12 +41,12 @@ def _obs(**kwargs: object) -> WeatherObservation:
 
 def _make_settings(
     station_id: str = "YZjgOxm",
-    api_key: str = "testpassword",
+    password: str = "testpassword",
 ) -> WindySettings:
     return WindySettings(
         enabled=True,
         station_id=station_id,
-        api_key=api_key,
+        password=password,
     )
 
 
@@ -115,13 +115,13 @@ async def test_publish_uses_bearer_header_not_query_param() -> None:
 
 @respx.mock
 async def test_publish_api_key_not_in_url() -> None:
-    """Regression guard: the configured api_key must not appear in the request URL.
+    """Regression guard: the configured password must not appear in the request URL.
 
     httpx embeds str(request.url) in HTTPStatusError messages and access logs.
     This test ensures the secret is never leaked via the URL.
     """
     api_key = "super_secret_station_pw"
-    settings = _make_settings(api_key=api_key)
+    settings = _make_settings(password=api_key)
     route = respx.get(_WINDY_URL).mock(return_value=httpx.Response(200, text=""))
 
     async with httpx.AsyncClient() as client:
@@ -368,7 +368,7 @@ def test_factory_builder_creates_windy_publisher() -> None:
     mock_settings.windy = WindySettings(
         enabled=True,
         station_id="YZjgOxm",
-        api_key="testpw",
+        password="testpw",
     )
     from weatherlink_bridge.publishers.windy import _build_windy
 

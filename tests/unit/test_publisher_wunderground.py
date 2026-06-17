@@ -40,12 +40,12 @@ def _obs(**kwargs: object) -> WeatherObservation:
 
 def _make_settings(
     station_id: str = "KTESTSTA1",
-    api_key: str = "testpassword",
+    password: str = "testpassword",
 ) -> WundergroundSettings:
     return WundergroundSettings(
         enabled=True,
         station_id=station_id,
-        api_key=api_key,
+        password=password,
     )
 
 
@@ -228,7 +228,7 @@ def test_factory_builder_creates_publisher() -> None:
     mock_settings.wunderground = WundergroundSettings(
         enabled=True,
         station_id="KTEST1",
-        api_key="pw",
+        password="pw",
     )
     from weatherlink_bridge.publishers.wunderground import _build_wunderground
 

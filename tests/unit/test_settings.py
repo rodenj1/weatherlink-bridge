@@ -44,10 +44,10 @@ def _clear_all_app_vars(monkeypatch: pytest.MonkeyPatch) -> None:
         "WEATHERLINK__STATION_ID",
         "WUNDERGROUND__ENABLED",
         "WUNDERGROUND__STATION_ID",
-        "WUNDERGROUND__API_KEY",
+        "WUNDERGROUND__PASSWORD",
         "WINDY__ENABLED",
         "WINDY__STATION_ID",
-        "WINDY__API_KEY",
+        "WINDY__PASSWORD",
         "LOG_LEVEL",
         "UPDATE_INTERVAL_MINS",
     ):
@@ -141,7 +141,7 @@ def test_wunderground_model_fields_defaults() -> None:
     wu = WundergroundSettings()
     assert wu.enabled is False
     assert wu.station_id == ""
-    assert wu.api_key == ""
+    assert wu.password == ""
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ def test_windy_model_fields_defaults() -> None:
     ws = WindySettings()
     assert ws.enabled is False
     assert ws.station_id == ""
-    assert ws.api_key == ""
+    assert ws.password == ""
 
 
 # ---------------------------------------------------------------------------

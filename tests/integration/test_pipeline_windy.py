@@ -38,7 +38,7 @@ def _windy_settings() -> WindySettings:
     return WindySettings(
         enabled=True,
         station_id="WINDYtest1",
-        api_key="windypw",
+        password="windypw",
     )
 
 
@@ -97,7 +97,7 @@ async def test_windy_success_path() -> None:
     # auth: must be in the Authorization header, never in the URL
     assert sent_request.headers.get("authorization") == "Bearer windypw"
     assert "PASSWORD" not in qs
-    # leak-prevention: the api_key must not appear anywhere in the request URL
+    # leak-prevention: the station password must not appear anywhere in the request URL
     assert "windypw" not in str(sent_request.url)
     # imperial keys must NOT appear
     assert "tempf" not in qs

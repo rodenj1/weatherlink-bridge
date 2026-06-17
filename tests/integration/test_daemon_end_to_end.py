@@ -63,12 +63,12 @@ def _make_settings() -> AppSettings:
         wunderground=WundergroundSettings(
             enabled=True,
             station_id="KTEST001",
-            api_key="testpw",
+            password="testpw",
         ),
         windy=WindySettings(
             enabled=True,
             station_id="WINDYtest1",
-            api_key="windypw",
+            password="windypw",
         ),
         update_interval_mins=5,
         metrics_port=19898,

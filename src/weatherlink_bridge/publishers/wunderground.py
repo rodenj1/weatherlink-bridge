@@ -70,7 +70,7 @@ class WundergroundPublisher(BasePublisher):
         """
         params = self._mapper.map(observation)
         params["ID"] = self._settings.station_id
-        params["PASSWORD"] = self._settings.api_key
+        params["PASSWORD"] = self._settings.password
 
         log.debug("wunderground_publish", station_id=self._settings.station_id)
 

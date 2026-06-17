@@ -39,7 +39,7 @@ def _wu_settings() -> WundergroundSettings:
     return WundergroundSettings(
         enabled=True,
         station_id="KTEST001",
-        api_key="testpw",
+        password="testpw",
     )
 
 
