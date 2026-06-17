@@ -225,12 +225,20 @@ def test_baro_sensor_has_data(parsed_response: WeatherLinkResponse) -> None:
     assert len(_baro_sensor(parsed_response).data) == 1
 
 
-def test_baro_sensor_extra_pressure_last(parsed_response: WeatherLinkResponse) -> None:
-    """pressure_last is not a declared SensorData field; it lands in model_extra."""
+def test_baro_sensor_pressure_last_is_declared(
+    parsed_response: WeatherLinkResponse,
+) -> None:
+    """pressure_last is a declared SensorData field (ER-002); it is NOT in model_extra.
+
+    After ER-002 the EnviroMonitor barometer field is declared on SensorData so
+    the collector can read it directly without going through model_extra.
+    """
     data = _baro_sensor(parsed_response).data[0]
+    # Declared field — accessible as an attribute
+    assert data.pressure_last == pytest.approx(29.959)
+    # Must NOT land in model_extra
     assert data.model_extra is not None
-    assert "pressure_last" in data.model_extra
-    assert data.model_extra["pressure_last"] == pytest.approx(29.959)
+    assert "pressure_last" not in data.model_extra
 
 
 # ---------------------------------------------------------------------------

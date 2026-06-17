@@ -1,3 +1,24 @@
 # Sensor map: WeatherLink → Weather Underground
-# Phase 2/3: real field mappings will be added here
-# TODO(Phase 2): implement field mappings
+# WU PWS Protocol: https://support.weather.com/s/article/PWS-Upload-Protocol
+# All values are imperial (ADR 0006 — WU is imperial-only).
+# HTTPS endpoint (defect #1 fix). Success = body "success" (defect #2 fix).
+
+fields:
+  temp_out_f: tempf
+  humidity_pct: humidity
+  dew_point_f: dewptf
+  pressure_sea_level_inHg: baromin
+  wind_speed_mph: windspeedmph
+  wind_gust_mph:
+    - windgustmph
+    - windgustmph_10m
+  wind_dir_deg: winddir
+  rain_60min_in: rainin
+  rain_day_in: dailyrainin
+  uv_index: UV
+  solar_rad_wm2: solarradiation
+  soil_temp_1_f: soiltempf
+
+static_params:
+  action: updateraw
+  dateutc: now

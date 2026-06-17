@@ -67,6 +67,9 @@ class SensorData(BaseModel):
     rainfall_daily_in: float | None = None
     uv_index: float | None = None
     bar_sea_level: float | None = None  # WLL sea-level pressure field name
+    # EnviroMonitor barometer (sensor_type 3 / DST 9) sea-level pressure (inHg).
+    # Distinct from ``bar`` (ISS field); used by dedicated baro sensors.
+    pressure_last: float | None = None
 
 
 class Sensor(BaseModel):
