@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weatherlink-bridge
+  namespace: weather
+  labels:
+    app: weatherlink-bridge
+spec:
+  # replicas: 1 is critical — two replicas would double-upload every
+  # observation to Weather Underground and Windy.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weatherlink-bridge
+  template:
+    metadata:
+      labels:
+        app: weatherlink-bridge
+      annotations:
+        # Prometheus scrape annotations — picked up by a standard
+        # prometheus-community/kube-prometheus-stack scrape config.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: weatherlink-bridge
+          image: ghcr.io/rodenj1/weatherlink-bridge:latest
+          imagePullPolicy: Always
+          # Secrets injected from the Secret object (see secret.example.yaml).
+          envFrom:
+            - secretRef:
+                name: weatherlink-bridge-secret
+          # Non-secret configuration — safe to store in the manifest directly.
+          env:
+            - name: WUNDERGROUND__ENABLED
+              value: "true"
+            - name: WINDY__ENABLED
+              value: "false"
+            - name: UPDATE_INTERVAL_MINS
+              value: "5"
+            - name: METRICS_PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: "INFO"
+          ports:
+            - containerPort: 8080
+              name: metrics
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3

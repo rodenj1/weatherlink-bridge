@@ -1,0 +1,22 @@
+services:
+  weatherlink-bridge:
+    image: ghcr.io/rodenj1/weatherlink-bridge:latest
+    container_name: weatherlink-bridge
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # Prometheus metrics / liveness endpoint
+    # Real credentials are supplied via a .env file (see .env.example).
+    # Never commit .env with real values.
+    env_file:
+      - .env
+    healthcheck:
+      # python -c urllib is available in the runtime image without curl/wget.
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8080/metrics')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
