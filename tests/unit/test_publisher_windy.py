@@ -99,16 +99,38 @@ async def test_publish_includes_id_as_string() -> None:
 
 
 @respx.mock
-async def test_publish_includes_password() -> None:
-    """PASSWORD query param is present."""
+async def test_publish_uses_bearer_header_not_query_param() -> None:
+    """Auth is sent as Authorization: Bearer header; PASSWORD must NOT be a query param."""
     route = respx.get(_WINDY_URL).mock(return_value=httpx.Response(200, text=""))
 
     async with httpx.AsyncClient() as client:
         publisher = _make_publisher(client)
         await publisher.publish(_obs())
 
-    query = route.calls[0].request.url.query.decode()
-    assert "PASSWORD=testpassword" in query
+    request = route.calls[0].request
+    assert request.headers.get("authorization") == "Bearer testpassword"
+    query = request.url.query.decode()
+    assert "PASSWORD" not in query
+
+
+@respx.mock
+async def test_publish_api_key_not_in_url() -> None:
+    """Regression guard: the configured api_key must not appear in the request URL.
+
+    httpx embeds str(request.url) in HTTPStatusError messages and access logs.
+    This test ensures the secret is never leaked via the URL.
+    """
+    api_key = "super_secret_station_pw"
+    settings = _make_settings(api_key=api_key)
+    route = respx.get(_WINDY_URL).mock(return_value=httpx.Response(200, text=""))
+
+    async with httpx.AsyncClient() as client:
+        mapper = FieldMapper(_WINDY_MAP_PATH)
+        publisher = WindyPublisher(settings, client, mapper)
+        await publisher.publish(_obs())
+
+    request = route.calls[0].request
+    assert api_key not in str(request.url)
 
 
 @respx.mock

@@ -91,11 +91,14 @@ async def test_windy_success_path() -> None:
     assert float(_single("gust")) == pytest.approx(round(13 * 0.44704, 4))
     # precip: in_to_mm(0) = 0.0 — zero must survive
     assert float(_single("precip")) == pytest.approx(0.0)
-    # station id and auth
+    # station id and time (non-secret query params)
     assert _single("id") == "WINDYtest1"
-    assert _single("PASSWORD") == "windypw"
-    # time must be a UTC ISO timestamp ending with Z
     assert _single("time").endswith("Z")
+    # auth: must be in the Authorization header, never in the URL
+    assert sent_request.headers.get("authorization") == "Bearer windypw"
+    assert "PASSWORD" not in qs
+    # leak-prevention: the api_key must not appear anywhere in the request URL
+    assert "windypw" not in str(sent_request.url)
     # imperial keys must NOT appear
     assert "tempf" not in qs
     assert "windspeedmph" not in qs
