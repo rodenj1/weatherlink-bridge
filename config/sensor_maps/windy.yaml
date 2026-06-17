@@ -1,3 +1,28 @@
-# Sensor map: WeatherLink → Windy (metric units via transforms)
-# Phase 2/3: real field mappings will be added here
-# TODO(Phase 3): implement field mappings with unit transforms
+# Sensor map: WeatherLink → Windy v2 (metric units via transforms, ADR 0006)
+# Windy v2 native endpoint: GET https://stations.windy.com/api/v2/observation/update
+# All target params are metric (°C, m/s, Pa, mm) — transforms applied by FieldMapper.
+# id, PASSWORD, and time are added by WindyPublisher at publish time.
+
+fields:
+  temp_out_f:
+    target: temp
+    transform: f_to_c
+  dew_point_f:
+    target: dewpoint
+    transform: f_to_c
+  humidity_pct: humidity
+  pressure_sea_level_inHg:
+    target: pressure
+    transform: inhg_to_pa
+  wind_speed_mph:
+    target: wind
+    transform: mph_to_ms
+  wind_gust_mph:
+    target: gust
+    transform: mph_to_ms
+  wind_dir_deg: winddir
+  rain_60min_in:
+    target: precip
+    transform: in_to_mm
+  uv_index: uv
+  solar_rad_wm2: solarradiation

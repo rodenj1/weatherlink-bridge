@@ -4,20 +4,22 @@ Loads a per-publisher sensor map YAML and translates a canonical
 ``WeatherObservation`` into a flat ``dict[str, str]`` ready for a publisher's
 API call.
 
-Phase 2 supports static field remapping only.  Transform functions (e.g.
-``f_to_c``) are reserved for Phase 3 — their presence in a sensor map YAML is
-rejected at mapper initialisation time so errors are surfaced early rather than
-silently dropped at observation time (ADR 0006).
+Supports static field remapping and named unit-conversion transforms
+(e.g. ``f_to_c``).  Unknown transform names raise ``MappingError`` at mapper
+initialisation time so errors surface early rather than silently at observation
+time (ADR 0006).
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import yaml
 from pydantic import ValidationError
 
 from weatherlink_bridge.exceptions import MappingError
+from weatherlink_bridge.mapping.transforms import get_transform
 from weatherlink_bridge.models.observation import WeatherObservation
 from weatherlink_bridge.models.sensor_map import SensorMapConfig
 
@@ -30,12 +32,17 @@ class FieldMapper:
 
     Raises:
         MappingError: If the YAML is invalid, fails schema validation, or
-            contains transforms (Phase 3 TODO).
+            contains an unknown transform name.
     """
 
     def __init__(self, sensor_map_path: Path) -> None:
         self._path = sensor_map_path
         self._config = self._load(sensor_map_path)
+        # Resolve transform callables at init time (ADR 0006 — fail fast).
+        self._transforms: dict[str, Callable[[float], float]] = {}
+        for field_name, mapping in self._config.fields.items():
+            if mapping.transform is not None:
+                self._transforms[field_name] = get_transform(mapping.transform)
 
     @staticmethod
     def _load(path: Path) -> SensorMapConfig:
@@ -57,14 +64,6 @@ class FieldMapper:
                 details=str(exc),
             ) from exc
 
-        # Transforms are not yet implemented — reject eagerly (ADR 0006).
-        for field_name, mapping in config.fields.items():
-            if mapping.transform is not None:
-                raise MappingError(
-                    "transforms not yet implemented in Phase 2 — Phase 3 TODO",
-                    details=f"Field {field_name!r} specifies transform={mapping.transform!r}",
-                )
-
         return config
 
     def map(self, obs: WeatherObservation) -> dict[str, str]:
@@ -72,7 +71,9 @@ class FieldMapper:
 
         Static params from the sensor map are always included.  Per-field
         values that are ``None`` are skipped; ``0.0`` and other falsy-but-valid
-        values are included (defect #6).
+        values are included (defect #6).  When a transform is configured the
+        converted value is rounded to 4 decimal places before stringification
+        to suppress floating-point noise.
 
         Args:
             obs: The canonical weather observation to translate.
@@ -86,6 +87,10 @@ class FieldMapper:
             value = getattr(obs, field_name, None)
             if value is None:
                 continue
+
+            transform = self._transforms.get(field_name)
+            if transform is not None:
+                value = round(transform(value), 4)
 
             targets: list[str] = (
                 [mapping.target] if isinstance(mapping.target, str) else mapping.target

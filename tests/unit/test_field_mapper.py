@@ -14,6 +14,7 @@ from weatherlink_bridge.models.observation import WeatherObservation
 _WUNDERGROUND_MAP_PATH = (
     Path(__file__).parents[2] / "config" / "sensor_maps" / "wunderground.yaml"
 )
+_WINDY_MAP_PATH = Path(__file__).parents[2] / "config" / "sensor_maps" / "windy.yaml"
 
 _FIXED_TIMESTAMP = datetime(2026, 6, 17, 12, 0, 0, tzinfo=UTC)
 
@@ -105,18 +106,18 @@ def test_static_params_included() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_transform_raises_mapping_error(tmp_path: Path) -> None:
-    """A sensor map with a transform field raises MappingError at init time."""
+def test_unknown_transform_raises_mapping_error(tmp_path: Path) -> None:
+    """A sensor map with an unknown transform name raises MappingError at init time."""
     yaml_content = """\
 fields:
   temp_out_f:
     target: tempf
-    transform: f_to_c
+    transform: not_a_real_transform
 """
     map_file = tmp_path / "bad_map.yaml"
     map_file.write_text(yaml_content, encoding="utf-8")
 
-    with pytest.raises(MappingError, match="transforms not yet implemented"):
+    with pytest.raises(MappingError, match="Unknown transform"):
         FieldMapper(map_file)
 
 
@@ -169,19 +170,70 @@ def test_temp_out_zero_survives_field_mapping() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Task 4: windy.yaml placeholder → MappingError at init
+# Windy sensor map (Phase 3)
 # ---------------------------------------------------------------------------
 
-_WINDY_MAP_PATH = Path(__file__).parents[2] / "config" / "sensor_maps" / "windy.yaml"
+
+def test_windy_yaml_loads() -> None:
+    """windy.yaml is valid and FieldMapper initialises without error."""
+    mapper = FieldMapper(_WINDY_MAP_PATH)
+    assert mapper is not None
 
 
-def test_windy_yaml_placeholder_raises_mapping_error() -> None:
-    """windy.yaml contains only comments (no fields key) — FieldMapper must raise.
+def test_windy_mapper_metric_values() -> None:
+    """Windy mapper converts imperial inputs to metric outputs."""
+    mapper = FieldMapper(_WINDY_MAP_PATH)
+    result = mapper.map(
+        _obs(
+            temp_out_f=67.6,
+            pressure_sea_level_inHg=29.92,
+            wind_speed_mph=10.0,
+            wind_gust_mph=15.0,
+            rain_60min_in=0.5,
+            humidity_pct=80.0,
+            wind_dir_deg=180.0,
+            uv_index=3.0,
+            solar_rad_wm2=400.0,
+            dew_point_f=50.0,
+        )
+    )
+    # Transformed fields
+    assert abs(float(result["temp"]) - 19.7778) < 0.01, f"temp={result['temp']}"
+    assert abs(float(result["pressure"]) - 101320.76) < 1.0, (
+        f"pressure={result['pressure']}"
+    )
+    assert abs(float(result["wind"]) - 4.4704) < 0.001, f"wind={result['wind']}"
+    assert abs(float(result["gust"]) - 6.7056) < 0.001, f"gust={result['gust']}"
+    assert abs(float(result["precip"]) - 12.7) < 0.001, f"precip={result['precip']}"
+    assert abs(float(result["dewpoint"]) - 10.0) < 0.01, (
+        f"dewpoint={result['dewpoint']}"
+    )
+    # Passthrough fields (no transform)
+    assert result["humidity"] == "80.0"
+    assert result["winddir"] == "180.0"
+    assert result["uv"] == "3.0"
+    assert result["solarradiation"] == "400.0"
+    # Imperial fallback params must NOT be present
+    assert "tempf" not in result
+    assert "windspeedmph" not in result
 
-    Phase 3 is not yet implemented. The placeholder YAML parses to None after
-    yaml.safe_load (all comments, no data), which fails SensorMapConfig schema
-    validation → MappingError.  This confirms the eager-rejection behaviour
-    works for a map with no usable content.
+
+def test_windy_mapper_no_imperial_fallback() -> None:
+    """Windy result must not contain any imperial param names."""
+    mapper = FieldMapper(_WINDY_MAP_PATH)
+    result = mapper.map(_obs(temp_out_f=72.0, wind_speed_mph=5.0))
+    for key in result:
+        assert key not in {"tempf", "windspeedmph", "baromin", "rainin"}, (
+            f"Imperial param {key!r} found in Windy output"
+        )
+
+
+def test_windy_zero_value_survives_transform() -> None:
+    """temp_out_f=0.0 must be transformed and emitted (defect #6 with transform path).
+
+    0.0°F = -17.7778°C — must appear in the output, not be skipped.
     """
-    with pytest.raises(MappingError, match="schema validation"):
-        FieldMapper(_WINDY_MAP_PATH)
+    mapper = FieldMapper(_WINDY_MAP_PATH)
+    result = mapper.map(_obs(temp_out_f=0.0))
+    assert "temp" in result
+    assert abs(float(result["temp"]) - (-17.7778)) < 0.01, f"temp={result['temp']}"
