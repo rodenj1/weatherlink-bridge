@@ -45,8 +45,12 @@ addopts = [
     "--strict-config",
 ]
 testpaths = ["tests"]
-norecursedirs = ["integration", "manual"]
+norecursedirs = ["manual"]
 asyncio_mode = "auto"
+markers = [
+    "integration: wired multi-component tests",
+    "live: hits the real WeatherLink API; skipped unless WLB_LIVE_TESTS=1",
+]
 
 [tool.coverage.run]
 source = ["src"]
