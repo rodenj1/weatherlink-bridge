@@ -18,7 +18,6 @@ Key implementation notes:
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import ClassVar
 
 import httpx
@@ -174,9 +173,7 @@ class WindyPublisher(BasePublisher):
 
 def _build_windy(settings: AppSettings) -> WindyPublisher:
     """Builder registered with PublisherFactory for the "windy" type."""
-    sensor_map_path = (
-        Path(__file__).parents[3] / "config" / "sensor_maps" / "windy.yaml"
-    )
+    sensor_map_path = settings.config_dir / "sensor_maps" / "windy.yaml"
     mapper = FieldMapper(sensor_map_path)
     return WindyPublisher(settings.windy, httpx.AsyncClient(), mapper)
 

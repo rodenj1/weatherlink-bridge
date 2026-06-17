@@ -39,6 +39,8 @@ _FIXTURE = (
     / "weatherlink"
     / "current_enviromonitor.json"
 )
+# Real project config/ — sensor maps are loaded from here in the integration test.
+_REAL_CONFIG_DIR = Path(__file__).parents[2] / "config"
 _WL_STATION_ID = "12345"
 _WL_URL = f"https://api.weatherlink.com/v2/current/{_WL_STATION_ID}"
 _WU_URL = (
@@ -70,6 +72,9 @@ def _make_settings() -> AppSettings:
             station_id="WINDYtest1",
             password="windypw",
         ),
+        # config_dir must be set explicitly so the factory resolves sensor maps
+        # from the real project config/, not the cwd (which differs in CI/container).
+        config_dir=_REAL_CONFIG_DIR,
         update_interval_mins=5,
         metrics_port=19898,
     )

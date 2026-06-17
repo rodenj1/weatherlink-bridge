@@ -13,7 +13,6 @@ Key implementation notes:
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import ClassVar
 
 import httpx
@@ -118,9 +117,7 @@ class WundergroundPublisher(BasePublisher):
 
 def _build_wunderground(settings: AppSettings) -> WundergroundPublisher:
     """Builder registered with PublisherFactory for the "wunderground" type."""
-    sensor_map_path = (
-        Path(__file__).parents[3] / "config" / "sensor_maps" / "wunderground.yaml"
-    )
+    sensor_map_path = settings.config_dir / "sensor_maps" / "wunderground.yaml"
     mapper = FieldMapper(sensor_map_path)
     return WundergroundPublisher(settings.wunderground, httpx.AsyncClient(), mapper)
 

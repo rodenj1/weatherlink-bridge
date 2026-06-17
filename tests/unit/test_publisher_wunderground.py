@@ -221,7 +221,11 @@ async def test_close_closes_client() -> None:
 
 
 def test_factory_builder_creates_publisher() -> None:
-    """_build_wunderground creates a WundergroundPublisher via factory."""
+    """_build_wunderground creates a WundergroundPublisher via factory.
+
+    config_dir is set to the real project config/ so _build_wunderground can
+    resolve the sensor map via settings.config_dir (BUG A regression).
+    """
     from unittest.mock import MagicMock
 
     mock_settings = MagicMock()
@@ -230,7 +234,55 @@ def test_factory_builder_creates_publisher() -> None:
         station_id="KTEST1",
         password="pw",
     )
+    # config_dir must point at a real directory containing sensor_maps/*.yaml
+    mock_settings.config_dir = _WUNDERGROUND_MAP_PATH.parents[1]
     from weatherlink_bridge.publishers.wunderground import _build_wunderground
 
+    publisher = _build_wunderground(mock_settings)
+    assert isinstance(publisher, WundergroundPublisher)
+
+
+# ---------------------------------------------------------------------------
+# BUG A regression: config_dir drives sensor-map resolution
+# ---------------------------------------------------------------------------
+
+
+def test_build_wunderground_uses_config_dir_not_file(tmp_path: Path) -> None:
+    """_build_wunderground resolves the sensor map from settings.config_dir.
+
+    Regression for BUG A: the builder must NOT use Path(__file__).parents[N]
+    (which breaks in wheel/container installs). It must use settings.config_dir.
+
+    We write a minimal valid wunderground.yaml into a temp directory and pass
+    that temp dir as config_dir. If the builder honoured __file__ arithmetic it
+    would look in the project src tree and find the real YAML (or the wrong one).
+    Here it must find and load the temp-dir YAML.
+    """
+    from unittest.mock import MagicMock
+
+    import yaml
+
+    # Create a minimal but valid sensor map in tmp_path/sensor_maps/
+    sensor_maps_dir = tmp_path / "sensor_maps"
+    sensor_maps_dir.mkdir()
+    minimal_map = {
+        "fields": {"temp_out_f": {"target": "tempf"}},
+        "static_params": {"action": "updateraw", "dateutc": "now"},
+    }
+    (sensor_maps_dir / "wunderground.yaml").write_text(
+        yaml.dump(minimal_map), encoding="utf-8"
+    )
+
+    mock_settings = MagicMock()
+    mock_settings.wunderground = WundergroundSettings(
+        enabled=True,
+        station_id="KTEST1",
+        password="pw",
+    )
+    mock_settings.config_dir = tmp_path  # <-- tmp dir, NOT the project config/
+
+    from weatherlink_bridge.publishers.wunderground import _build_wunderground
+
+    # Must succeed and load from tmp_path, not from any __file__-relative path
     publisher = _build_wunderground(mock_settings)
     assert isinstance(publisher, WundergroundPublisher)

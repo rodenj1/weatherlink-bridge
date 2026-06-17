@@ -12,6 +12,8 @@ ADR 0001: pydantic-settings, no YAML config file.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -56,6 +58,19 @@ class AppSettings(BaseSettings):
     Nested groups are populated from ``<GROUP>__<FIELD>`` env vars (or ``.env``)
     via the ``__`` nested delimiter. ``weatherlink`` is required; the publisher
     groups default to disabled.
+
+    ``config_dir`` (env ``CONFIG_DIR``) is the directory that contains the
+    ``sensor_maps/`` subdirectory.  The default ``Path("config")`` resolves
+    correctly in both layouts:
+
+    * **Dev editable install** — cwd is the project root, so ``config/`` maps
+      to ``<project-root>/config/``.
+    * **Docker container** — ``WORKDIR /app`` and ``config/`` is copied to
+      ``/app/config/``, so the relative path resolves to ``/app/config/``.
+
+    Publisher builders must use ``settings.config_dir / "sensor_maps" / "<name>.yaml"``
+    rather than computing the path relative to ``__file__``, which breaks when the
+    package is installed as a wheel into ``site-packages``.
     """
 
     model_config = SettingsConfigDict(
@@ -69,6 +84,7 @@ class AppSettings(BaseSettings):
     weatherlink: WeatherLinkSettings
     wunderground: WundergroundSettings = WundergroundSettings()
     windy: WindySettings = WindySettings()
+    config_dir: Path = Path("config")
     log_level: str = "INFO"
     update_interval_mins: int = Field(default=5, ge=5)
     metrics_port: int = Field(default=8080, ge=1, le=65535)

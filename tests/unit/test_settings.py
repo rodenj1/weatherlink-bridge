@@ -48,6 +48,7 @@ def _clear_all_app_vars(monkeypatch: pytest.MonkeyPatch) -> None:
         "WINDY__ENABLED",
         "WINDY__STATION_ID",
         "WINDY__PASSWORD",
+        "CONFIG_DIR",
         "LOG_LEVEL",
         "UPDATE_INTERVAL_MINS",
     ):
@@ -294,3 +295,44 @@ def test_log_level_default_is_info(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = AppSettings(_env_file=_NO_ENV_FILE)  # type: ignore[call-arg]
 
     assert settings.log_level == "INFO"
+
+
+# ---------------------------------------------------------------------------
+# config_dir — BUG A regression (sensor-map path in container layout)
+# ---------------------------------------------------------------------------
+
+
+def test_config_dir_default_is_path_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    """config_dir defaults to Path('config') when CONFIG_DIR is absent.
+
+    Regression for BUG A: the default must work in both the dev editable install
+    (cwd = project root → './config') and the Docker container (WORKDIR /app,
+    config copied to /app/config → '/app/config' resolves via the relative path).
+    """
+    _clear_all_app_vars(monkeypatch)
+    _set_wl_vars(monkeypatch)
+
+    settings = AppSettings(_env_file=_NO_ENV_FILE)  # type: ignore[call-arg]
+
+    assert settings.config_dir == Path("config")
+
+
+def test_config_dir_reads_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CONFIG_DIR env var overrides the default config_dir."""
+    _clear_all_app_vars(monkeypatch)
+    _set_wl_vars(monkeypatch)
+    monkeypatch.setenv("CONFIG_DIR", "/custom/config")
+
+    settings = AppSettings(_env_file=_NO_ENV_FILE)  # type: ignore[call-arg]
+
+    assert settings.config_dir == Path("/custom/config")
+
+
+def test_config_dir_type_is_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """config_dir is a Path instance, not a raw string."""
+    _clear_all_app_vars(monkeypatch)
+    _set_wl_vars(monkeypatch)
+
+    settings = AppSettings(_env_file=_NO_ENV_FILE)  # type: ignore[call-arg]
+
+    assert isinstance(settings.config_dir, Path)
