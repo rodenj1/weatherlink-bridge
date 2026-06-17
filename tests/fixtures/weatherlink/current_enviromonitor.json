@@ -1,0 +1,71 @@
+{
+  "generated_at": 1781713861,
+  "sensors": [
+    {
+      "data": [
+        {
+          "bar": 29.959,
+          "bar_absolute": 29.958,
+          "bar_trend": 0,
+          "dew_point": 62,
+          "et_day": 0.015,
+          "forecast_desc": "FORECAST REQUIRES 3 HOURS OF RECENT DATA.",
+          "forecast_rule": 193,
+          "heat_index": 69,
+          "hum_out": 81,
+          "rain_15_min_clicks": 0,
+          "rain_15_min_in": 0,
+          "rain_15_min_mm": 0,
+          "rain_24_hr_clicks": 0,
+          "rain_24_hr_in": 0,
+          "rain_24_hr_mm": 0,
+          "rain_60_min_clicks": 0,
+          "rain_60_min_in": 0,
+          "rain_60_min_mm": 0,
+          "rain_day_clicks": 0,
+          "rain_day_in": 0,
+          "rain_day_mm": 0,
+          "rain_rate_clicks": 0,
+          "rain_rate_in": 0,
+          "rain_rate_mm": 0,
+          "rain_storm_clicks": 0,
+          "rain_storm_in": 0,
+          "rain_storm_mm": 0,
+          "rain_storm_start_date": null,
+          "solar_rad": 731,
+          "temp_out": 67.6,
+          "thsw_index": 78,
+          "ts": 1781713800,
+          "tz_offset": -25200,
+          "uv": 2.8,
+          "wet_bulb": 63.68,
+          "wind_chill": 66,
+          "wind_dir": 248,
+          "wind_dir_of_gust_10_min": 250,
+          "wind_gust_10_min": 13,
+          "wind_speed": 12,
+          "wind_speed_10_min": 9,
+          "wind_speed_2_min": 9.4
+        }
+      ],
+      "data_structure_type": 6,
+      "lsid": 100001,
+      "sensor_type": 24
+    },
+    {
+      "data": [
+        {
+          "bar_trend_3_hr": 0.02,
+          "pressure_last": 29.959,
+          "ts": 1781713800,
+          "tz_offset": -25200
+        }
+      ],
+      "data_structure_type": 9,
+      "lsid": 100002,
+      "sensor_type": 3
+    }
+  ],
+  "station_id": 12345,
+  "station_id_uuid": null
+}

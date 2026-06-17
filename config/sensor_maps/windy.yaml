@@ -1,0 +1,3 @@
+# Sensor map: WeatherLink → Windy (metric units via transforms)
+# Phase 2/3: real field mappings will be added here
+# TODO(Phase 3): implement field mappings with unit transforms

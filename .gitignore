@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- weatherlink-bridge project-specific ---
+# Design docs kept local, not version-controlled (per project owner).
+design_docs/
+
+# Raw WeatherLink API captures may contain the station UUID and cell-tower
+# geolocation from the health record. Only the sanitized current_<device>.json
+# fixtures are committed; raw dated captures stay local.
+tests/fixtures/weatherlink/current_2*.json
