@@ -22,7 +22,7 @@ import structlog
 from weatherlink_bridge.exceptions import PublisherError
 from weatherlink_bridge.mapping.mapper import FieldMapper
 from weatherlink_bridge.models.observation import WeatherObservation
-from weatherlink_bridge.publishers.base import BasePublisher
+from weatherlink_bridge.publishers.base import BasePublisher, PublishResult
 from weatherlink_bridge.publishers.factory import PublisherFactory
 from weatherlink_bridge.settings import AppSettings, WundergroundSettings
 
@@ -54,15 +54,16 @@ class WundergroundPublisher(BasePublisher):
         self._client = client
         self._mapper = mapper
 
-    async def publish(self, observation: WeatherObservation) -> bool:
+    async def publish(self, observation: WeatherObservation) -> PublishResult:
         """Publish a weather observation to Weather Underground.
 
         Args:
             observation: The canonical weather observation to publish.
 
         Returns:
-            True if Weather Underground acknowledged with ``"success"``,
-            False if the body indicates an error (e.g. invalid credentials).
+            ``PublishResult.SUCCESS`` if Weather Underground acknowledged with
+            ``"success"``; ``PublishResult.FAILURE`` if the body indicates an
+            error (e.g. invalid credentials).
 
         Raises:
             PublisherError: On HTTP errors (4xx/5xx) or network failures.
@@ -100,10 +101,10 @@ class WundergroundPublisher(BasePublisher):
                 body=body[:100],
                 station_id=self._settings.station_id,
             )
-            return False
+            return PublishResult.FAILURE
 
         log.info("wunderground_published", station_id=self._settings.station_id)
-        return True
+        return PublishResult.SUCCESS
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""

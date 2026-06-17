@@ -3,7 +3,25 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any, ClassVar
+
+
+class PublishResult(Enum):
+    """Result of a single publisher.publish() call.
+
+    Distinguishes between three outcomes so the instrumentation layer can
+    record the correct Prometheus status label:
+
+    * ``SUCCESS`` — observation was accepted by the remote service.
+    * ``FAILURE`` — observation was rejected or a non-retriable error occurred.
+    * ``SKIPPED`` — publisher chose not to attempt the request (e.g. 429 backoff
+      window still active per ADR 0007).
+    """
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+    SKIPPED = "skipped"
 
 
 class BasePublisher(ABC):
@@ -17,7 +35,7 @@ class BasePublisher(ABC):
     name: ClassVar[str]
 
     @abstractmethod
-    async def publish(self, observation: Any) -> bool:
+    async def publish(self, observation: Any) -> PublishResult:
         """Publish a weather observation to the target service.
 
         Args:
@@ -26,7 +44,8 @@ class BasePublisher(ABC):
                          implements that model.
 
         Returns:
-            True if published successfully, False otherwise.
+            A ``PublishResult`` indicating whether the observation was
+            accepted, rejected, or skipped (backoff).
         """
         ...  # pragma: no cover
 

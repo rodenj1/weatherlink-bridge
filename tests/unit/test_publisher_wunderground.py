@@ -12,6 +12,7 @@ import respx
 from weatherlink_bridge.exceptions import PublisherError
 from weatherlink_bridge.mapping.mapper import FieldMapper
 from weatherlink_bridge.models.observation import WeatherObservation
+from weatherlink_bridge.publishers.base import PublishResult
 from weatherlink_bridge.publishers.factory import PublisherFactory
 from weatherlink_bridge.publishers.wunderground import WundergroundPublisher
 from weatherlink_bridge.settings import WundergroundSettings
@@ -60,14 +61,14 @@ def _make_publisher(client: httpx.AsyncClient) -> WundergroundPublisher:
 
 @respx.mock
 async def test_publish_success() -> None:
-    """Returns True when WU responds with body 'success'."""
+    """Returns SUCCESS when WU responds with body 'success'."""
     respx.get(_WU_URL).mock(return_value=httpx.Response(200, text="success"))
 
     async with httpx.AsyncClient() as client:
         publisher = _make_publisher(client)
         result = await publisher.publish(_obs())
 
-    assert result is True
+    assert result == PublishResult.SUCCESS
 
 
 @respx.mock
@@ -104,8 +105,8 @@ async def test_publish_includes_id_and_password() -> None:
 
 
 @respx.mock
-async def test_publish_body_invalidpassword_returns_false() -> None:
-    """HTTP 200 with non-'success' body returns False (defect #2 proof)."""
+async def test_publish_body_invalidpassword_returns_failure() -> None:
+    """HTTP 200 with non-'success' body returns FAILURE (defect #2 proof)."""
     respx.get(_WU_URL).mock(
         return_value=httpx.Response(200, text="INVALIDPASSWORDID|Reason: bad pw")
     )
@@ -114,15 +115,16 @@ async def test_publish_body_invalidpassword_returns_false() -> None:
         publisher = _make_publisher(client)
         result = await publisher.publish(_obs())
 
-    assert result is False
+    assert result == PublishResult.FAILURE
 
 
 @respx.mock
-async def test_publish_exact_invalidpassword_body_returns_false() -> None:
+async def test_publish_exact_invalidpassword_body_returns_failure() -> None:
     """Exact WU auth-failure body 'INVALIDPASSWORDID|Password and/or id are incorrect'.
 
     Adversarial check: the exact error string WU returns for bad credentials
-    must yield False, not True — verifies body-based success detection (defect #2).
+    must yield FAILURE, not SUCCESS — verifies body-based success detection
+    (defect #2).
     """
     respx.get(_WU_URL).mock(
         return_value=httpx.Response(
@@ -134,12 +136,12 @@ async def test_publish_exact_invalidpassword_body_returns_false() -> None:
         publisher = _make_publisher(client)
         result = await publisher.publish(_obs())
 
-    assert result is False
+    assert result == PublishResult.FAILURE
 
 
 @respx.mock
 async def test_publish_success_uppercase_with_trailing_whitespace() -> None:
-    """Body 'SUCCESS\\n' (uppercase + trailing whitespace) → publish returns True.
+    """Body 'SUCCESS\\n' (uppercase + trailing whitespace) → publish returns SUCCESS.
 
     The implementation strips whitespace and lowercases the body before
     comparison.  This test adversarially verifies both normalisations.
@@ -150,7 +152,7 @@ async def test_publish_success_uppercase_with_trailing_whitespace() -> None:
         publisher = _make_publisher(client)
         result = await publisher.publish(_obs())
 
-    assert result is True
+    assert result == PublishResult.SUCCESS
 
 
 @respx.mock

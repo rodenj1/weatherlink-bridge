@@ -13,6 +13,7 @@ import respx
 
 from weatherlink_bridge.mapping.mapper import FieldMapper
 from weatherlink_bridge.models.observation import WeatherObservation
+from weatherlink_bridge.publishers.base import PublishResult
 from weatherlink_bridge.publishers.factory import PublisherFactory
 from weatherlink_bridge.publishers.windy import WindyPublisher
 from weatherlink_bridge.settings import WindySettings
@@ -60,15 +61,15 @@ def _make_publisher(client: httpx.AsyncClient) -> WindyPublisher:
 
 
 @respx.mock
-async def test_publish_success_returns_true() -> None:
-    """Returns True when Windy responds with HTTP 200."""
+async def test_publish_success_returns_success() -> None:
+    """Returns SUCCESS when Windy responds with HTTP 200."""
     respx.get(_WINDY_URL).mock(return_value=httpx.Response(200, text=""))
 
     async with httpx.AsyncClient() as client:
         publisher = _make_publisher(client)
         result = await publisher.publish(_obs())
 
-    assert result is True
+    assert result == PublishResult.SUCCESS
 
 
 @respx.mock
@@ -147,8 +148,8 @@ async def test_publish_sends_metric_temp() -> None:
 
 
 @respx.mock
-async def test_429_returns_false_and_sets_skip_until() -> None:
-    """HTTP 429 with retry_after body → returns False and sets _skip_until."""
+async def test_429_returns_failure_and_sets_skip_until() -> None:
+    """HTTP 429 with retry_after body → returns FAILURE and sets _skip_until."""
     future = datetime(2099, 1, 1, 0, 0, 0, tzinfo=UTC)
     body = json.dumps({"retry_after": future.strftime("%Y-%m-%dT%H:%M:%S.000Z")})
     respx.get(_WINDY_URL).mock(
@@ -161,7 +162,7 @@ async def test_429_returns_false_and_sets_skip_until() -> None:
         publisher = _make_publisher(client)
         result = await publisher.publish(_obs())
 
-    assert result is False
+    assert result == PublishResult.FAILURE
     assert publisher._skip_until is not None
     assert publisher._skip_until >= future - timedelta(seconds=1)
 
@@ -179,13 +180,13 @@ async def test_429_subsequent_call_skipped() -> None:
 
     async with httpx.AsyncClient() as client:
         publisher = _make_publisher(client)
-        # First call → 429
+        # First call → 429 → FAILURE
         await publisher.publish(_obs())
         call_count_after_first = route.call_count
-        # Second call → should be skipped (backoff active)
+        # Second call → should be skipped (backoff active) → SKIPPED
         result = await publisher.publish(_obs())
 
-    assert result is False
+    assert result == PublishResult.SKIPPED
     # No additional HTTP request should have been made
     assert route.call_count == call_count_after_first
 
@@ -207,7 +208,7 @@ async def test_429_no_retry_after_defaults_to_5min() -> None:
         result = await publisher.publish(_obs())
 
     after = datetime.now(UTC)
-    assert result is False
+    assert result == PublishResult.FAILURE
     assert publisher._skip_until is not None
     # Should be approximately now + 5 minutes
     expected_min = before + timedelta(minutes=5) - timedelta(seconds=2)
@@ -232,7 +233,7 @@ async def test_429_invalid_retry_after_defaults_to_5min() -> None:
         result = await publisher.publish(_obs())
 
     after = datetime.now(UTC)
-    assert result is False
+    assert result == PublishResult.FAILURE
     assert publisher._skip_until is not None
     expected_min = before + timedelta(minutes=5) - timedelta(seconds=2)
     expected_max = after + timedelta(minutes=5) + timedelta(seconds=2)
@@ -263,7 +264,7 @@ async def test_429_naive_datetime_retry_after_defaults_to_5min() -> None:
         result = await publisher.publish(_obs())
 
     after = datetime.now(UTC)
-    assert result is False
+    assert result == PublishResult.FAILURE
     assert publisher._skip_until is not None
     # Must be tz-aware — no accidental naive datetime leaking through.
     assert publisher._skip_until.tzinfo is not None
@@ -383,7 +384,7 @@ async def test_429_backoff_expired_resumes_publishing() -> None:
 
         result = await publisher.publish(_obs())
 
-    assert result is True
+    assert result == PublishResult.SUCCESS
     # The expired backoff must NOT have blocked the request
     assert route.call_count == 1
 
@@ -408,7 +409,7 @@ async def test_429_retry_after_offset_timezone_format() -> None:
         publisher = _make_publisher(client)
         result = await publisher.publish(_obs())
 
-    assert result is False
+    assert result == PublishResult.FAILURE
     assert publisher._skip_until is not None
     # Must be tz-aware (no naive/aware comparison error in a subsequent publish)
     assert publisher._skip_until.tzinfo is not None

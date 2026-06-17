@@ -71,3 +71,4 @@ class AppSettings(BaseSettings):
     windy: WindySettings = WindySettings()
     log_level: str = "INFO"
     update_interval_mins: int = Field(default=5, ge=5)
+    metrics_port: int = Field(default=8080, ge=1, le=65535)

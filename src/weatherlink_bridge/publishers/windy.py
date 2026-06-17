@@ -24,7 +24,7 @@ import structlog
 from weatherlink_bridge.exceptions import PublisherError
 from weatherlink_bridge.mapping.mapper import FieldMapper
 from weatherlink_bridge.models.observation import WeatherObservation
-from weatherlink_bridge.publishers.base import BasePublisher
+from weatherlink_bridge.publishers.base import BasePublisher, PublishResult
 from weatherlink_bridge.publishers.factory import PublisherFactory
 from weatherlink_bridge.settings import AppSettings, WindySettings
 
@@ -57,14 +57,16 @@ class WindyPublisher(BasePublisher):
         self._mapper = mapper
         self._skip_until: datetime | None = None
 
-    async def publish(self, observation: WeatherObservation) -> bool:
+    async def publish(self, observation: WeatherObservation) -> PublishResult:
         """Publish a weather observation to Windy.
 
         Args:
             observation: The canonical weather observation to publish.
 
         Returns:
-            True if Windy accepted the observation (HTTP 2xx), False otherwise.
+            ``PublishResult.SUCCESS`` if Windy accepted the observation (HTTP
+            2xx); ``PublishResult.SKIPPED`` if the 429 backoff window is still
+            active (ADR 0007); ``PublishResult.FAILURE`` on a rejected request.
 
         Raises:
             PublisherError: On unexpected HTTP errors or network failures.
@@ -75,7 +77,7 @@ class WindyPublisher(BasePublisher):
                 "windy_backoff_active",
                 skip_until=self._skip_until.isoformat(),
             )
-            return False
+            return PublishResult.SKIPPED
 
         params = self._mapper.map(observation)
         # id must be a string (Glossary — Windy station id).
@@ -100,7 +102,7 @@ class WindyPublisher(BasePublisher):
                 "windy_rate_limited",
                 skip_until=self._skip_until.isoformat(),
             )
-            return False
+            return PublishResult.FAILURE
 
         try:
             resp.raise_for_status()
@@ -116,7 +118,7 @@ class WindyPublisher(BasePublisher):
             ) from exc
 
         log.info("windy_published", station_id=self._settings.station_id)
-        return True
+        return PublishResult.SUCCESS
 
     def _parse_retry_after(self, resp: httpx.Response) -> datetime:
         """Parse ``retry_after`` from a 429 response body.
