@@ -1,4 +1,5 @@
 """Root conftest.py — adds project src to sys.path for test imports."""
+
 import sys
 from pathlib import Path
 
