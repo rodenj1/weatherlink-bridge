@@ -58,3 +58,11 @@ def configure_logging(log_level: str, *, development: bool = False) -> None:
     root_logger.handlers.clear()
     root_logger.addHandler(handler)
     root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+
+    # SECURITY: httpx/httpcore log the full request URL at INFO. Those URLs
+    # carry credentials in their query strings (WeatherLink ``api-key``, the WU
+    # ``PASSWORD``), so emitting them would leak secrets into stdout/pod logs.
+    # Cap these loggers at WARNING unconditionally — even in development — so
+    # request URLs are never logged regardless of the app log level.
+    for noisy_logger in ("httpx", "httpcore"):
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
