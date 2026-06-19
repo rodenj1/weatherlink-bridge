@@ -32,6 +32,8 @@ conftest.py
 # Design / documentation noise
 design_docs
 *.md
+# README.md is needed at build time (pyproject `readme = "README.md"`).
+!README.md
 LICENSE
 
 # Editor / OS artefacts

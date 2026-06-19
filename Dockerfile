@@ -13,6 +13,8 @@ RUN uv sync --frozen --no-install-project --no-dev
 # Copy source and config, then install the project itself.
 COPY src/ ./src/
 COPY config/ ./config/
+# Required by pyproject `readme = "README.md"` when uv builds the project wheel.
+COPY README.md ./README.md
 
 RUN uv sync --frozen --no-dev --no-editable
 
