@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "weatherlink-bridge"
-version = "0.1.0"
+version = "0.1.1"
 description = "WeatherLink PWS bridge service forwarding to Weather Underground and Windy"
 readme = "README.md"
 authors = [{ name = "John Roden", email = "rodenj@gmail.com" }]
@@ -115,7 +115,7 @@ extraPaths = ["src/"]
 
 [tool.commitizen]
 name = "cz_customize"
-version = "0.1.0"
+version = "0.1.1"
 version_provider = "pep621"
 version_files = ["src/weatherlink_bridge/__init__.py:__version__"]
 tag_format = "v$version"

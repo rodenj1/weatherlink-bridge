@@ -9,8 +9,15 @@ import weatherlink_bridge
 
 
 def test_version() -> None:
-    """Package has the expected version string."""
-    assert weatherlink_bridge.__version__ == "0.1.0"
+    """`__version__` is a non-empty semver-formatted string.
+
+    Not a hardcoded literal, so it survives version bumps. The pyproject ↔
+    __init__ version match is enforced separately by commitizen and the
+    release workflow's verify-version gate.
+    """
+    import re
+
+    assert re.fullmatch(r"\d+\.\d+\.\d+\S*", weatherlink_bridge.__version__)
 
 
 def test_cli_help_subprocess() -> None:
